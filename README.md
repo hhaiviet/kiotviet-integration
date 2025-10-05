@@ -1,14 +1,14 @@
-﻿# KiotViet Integration
+# KiotViet Integration
 
 Automated integration tool for KiotViet API - Invoice sync, Product export, and Token management.
 
-## ðŸš€ Quick Start
+## 🚀 Quick Start
 
 ### Installation
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/kiotviet-integration.git
+git clone https://github.com/hhaiviet/kiotviet-integration.git
 cd kiotviet-integration
 
 # Install dependencies
@@ -77,29 +77,29 @@ products = product_service.get_all()
 product_service.export_to_csv(products)
 ```
 
-## ðŸ“¦ Features
+## 📦 Features
 
-- âœ… Automated token management with Selenium
-- âœ… Incremental invoice synchronization
-- âœ… Product data export (CSV/Excel)
-- âœ… Retry logic and error handling
-- âœ… Progress tracking and logging
-- âœ… Docker support
-- âœ… CI/CD with GitHub Actions
+- ✅ Automated token management with Selenium
+- ✅ Incremental invoice synchronization
+- ✅ Product data export (CSV/Excel)
+- ✅ Retry logic and error handling
+- ✅ Progress tracking and logging
+- ✅ Docker support
+- ✅ CI/CD with GitHub Actions
 
-## ðŸ—ï¸ Architecture
+## 🏗️ Architecture
 
 ```
 src/
-â”œâ”€â”€ api/        # API clients and authentication
-â”œâ”€â”€ services/   # Business logic
-â”œâ”€â”€ models/     # Data models
-â”œâ”€â”€ exporters/  # Export handlers
-â”œâ”€â”€ utils/      # Utilities
-â””â”€â”€ cli/        # Command-line interface
+├── api/        # API clients and authentication
+├── services/   # Business logic
+├── models/     # Data models
+├── exporters/  # Export handlers
+├── utils/      # Utilities
+└── cli/        # Command-line interface
 ```
 
-## ðŸ§ª Testing
+## 🧪 Testing
 
 ```bash
 # Run all tests
@@ -112,7 +112,6 @@ pytest tests/unit/test_api_client.py -v
 pytest --cov=src --cov-report=html
 ```
 
-## ðŸ“ License
+## 📄 License
 
 MIT License
-
