@@ -1,0 +1,25 @@
+# API & Web
+requests>=2.31.0
+selenium-wire>=5.1.0
+webdriver-manager>=4.0.1
+
+# Data Processing
+pandas>=2.1.0
+openpyxl>=3.1.2
+
+# CLI
+click>=8.1.7
+rich>=13.7.0
+tqdm>=4.66.0
+
+# Configuration
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+
+# Validation
+pydantic>=2.5.0
+dataclasses-json>=0.6.3
+
+# Utilities
+tenacity>=8.2.3
+schedule>=1.2.0

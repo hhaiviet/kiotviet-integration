@@ -1,0 +1,30 @@
+# Default configuration
+api:
+  base_url: https://api-man1.kiotviet.vn/api
+  timeout: 30
+  max_retries: 3
+  page_size: 100
+
+credentials:
+  token_file: data/credentials/token.json
+
+invoices:
+  output_file: invoice_details.csv
+  checkpoint_file: invoices_checkpoint.json
+  page_size: 100
+  detail_retry_delay: 0.2
+
+products:
+  output_file: master_products.csv
+  page_size: 100
+
+data:
+  output_dir: data/output
+  checkpoint_dir: data/checkpoints
+  log_dir: data/logs
+
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+
