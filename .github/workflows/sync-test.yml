@@ -1,0 +1,58 @@
+name: KiotViet Data Sync (Test - Every 2 minutes)
+
+on:
+  schedule:
+    # Test schedule: Run every 2 minutes for testing (remove after testing)
+    - cron: '*/2 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  sync-data:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Install Chrome for Selenium
+      run: |
+        wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+        echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list
+        apt-get update
+        apt-get install -y google-chrome-stable
+
+    - name: Install ChromeDriver
+      run: |
+        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+')
+        wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION | cut -d. -f1-3)/chromedriver_linux64.zip
+        unzip /tmp/chromedriver.zip -d /usr/local/bin/
+        chmod +x /usr/local/bin/chromedriver
+
+    - name: Create data directory
+      run: mkdir -p data/output
+
+    - name: Run KiotViet sync
+      env:
+        AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        AZURE_STORAGE_CONTAINER: ${{ secrets.AZURE_STORAGE_CONTAINER }}
+        KIOTVIET_USERNAME: ${{ secrets.KIOTVIET_USERNAME }}
+        KIOTVIET_PASSWORD: ${{ secrets.KIOTVIET_PASSWORD }}
+      run: |
+        python scripts/kiotviet_run_all.py
+
+    - name: Display results
+      run: |
+        echo "=== Sync Results ==="
+        tail -20 cron.log || echo "No log file found"
+        echo "=== Files Generated ==="
+        ls -la data/output/ || echo "No output files"
