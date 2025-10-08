@@ -71,9 +71,6 @@ jobs:
         KIOTVIET_USERNAME: ${{ secrets.KIOTVIET_USERNAME }}
         KIOTVIET_PASSWORD: ${{ secrets.KIOTVIET_PASSWORD }}
       run: |
-        # Install required packages for token generation
-        pip install selenium-wire webdriver-manager
-
         # Create CI-friendly token generation script
         cat > get_token.py << 'EOF'
         import os
