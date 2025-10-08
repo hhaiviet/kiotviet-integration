@@ -71,10 +71,10 @@ def login_and_extract_token() -> None:
     options.add_argument("--start-maximized")
     options.add_argument("--disable-blink-features=AutomationControlled")
 
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=options,
-    )
+    options.binary_location = "/usr/bin/chromium-browser"
+    service = Service("/usr/lib/chromium-browser/chromedriver")
+
+    driver = webdriver.Chrome(service=service, options=options)
     wait = WebDriverWait(driver, 30)
 
     try:
