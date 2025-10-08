@@ -41,10 +41,27 @@ jobs:
 
     - name: Install ChromeDriver
       run: |
-        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+')
-        wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION | cut -d. -f1-3)/chromedriver_linux64.zip
+        # Install ChromeDriver using a more reliable method
+        CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+        echo "Chrome version: $CHROME_VERSION"
+
+        # Try to get ChromeDriver version that matches Chrome version
+        CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chromedriver/downloads.html" | grep -oP "chromedriver \K\d+\.\d+\.\d+" | head -1)
+
+        if [ -z "$CHROMEDRIVER_VERSION" ]; then
+          # Fallback to a known working version
+          CHROMEDRIVER_VERSION="114.0.5735.90"
+        fi
+
+        echo "Using ChromeDriver version: $CHROMEDRIVER_VERSION"
+
+        # Download ChromeDriver
+        wget -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip"
         unzip /tmp/chromedriver.zip -d /usr/local/bin/
         chmod +x /usr/local/bin/chromedriver
+
+        # Verify installation
+        chromedriver --version
 
     - name: Create data directory
       run: mkdir -p data/output
