@@ -14,6 +14,7 @@ from tqdm import tqdm
 from src.api.client import KiotVietClient
 from src.api.exceptions import ConfigurationError, KiotVietAPIError
 from src.models.credentials import AccessCredentials
+from src.services.base_service import BaseService
 from src.services.token_service import TokenService
 from src.utils.config import config
 from src.utils.logger import logger
@@ -45,7 +46,7 @@ class InvoiceSyncResult:
     checkpoint_updated: bool
 
 
-class InvoiceService:
+class InvoiceService(BaseService):
     """Fetch invoice details from KiotViet API and persist them to CSV."""
 
     def __init__(
@@ -53,49 +54,25 @@ class InvoiceService:
         client: Optional[KiotVietClient] = None,
         token_service: Optional[TokenService] = None,
     ) -> None:
+        super().__init__(client, token_service)
+
+        # Load invoice-specific configuration
         api_cfg = config.get("api", {})
         invoice_cfg = config.get("invoices", {})
-        data_cfg = config.get("data", {})
-        credentials_cfg = config.get("credentials", {})
 
-        base_url = api_cfg.get("base_url", "https://api-man1.kiotviet.vn/api")
-        timeout = int(api_cfg.get("timeout", 30))
-        max_retries = int(api_cfg.get("max_retries", 3))
-        retry_delay = float(invoice_cfg.get("detail_retry_delay", 0.2))
-        page_size = int(invoice_cfg.get("page_size", api_cfg.get("page_size", 100)))
+        self.page_size = int(invoice_cfg.get("page_size", api_cfg.get("page_size", 100)))
+        self.retry_delay = float(invoice_cfg.get("detail_retry_delay", 0.2))
 
-        self.client = client or KiotVietClient(
-            base_url=base_url,
-            timeout=timeout,
-            max_retries=max_retries,
-            retry_delay=retry_delay,
-        )
-
-        token_path = credentials_cfg.get("token_file", "data/credentials/token.json")
-        self.token_service = token_service or TokenService(token_path)
-
-        output_dir = Path(data_cfg.get("output_dir", "data/output"))
-        checkpoint_dir = Path(data_cfg.get("checkpoint_dir", "data/checkpoints"))
-
+        # Set up output and checkpoint paths
         output_file = invoice_cfg.get("output_file", "invoice_details.csv")
         checkpoint_file = invoice_cfg.get("checkpoint_file", "invoices_checkpoint.json")
 
-        self.output_path = Path(output_file)
-        if not self.output_path.is_absolute():
-            self.output_path = output_dir / self.output_path
-
-        self.checkpoint_path = Path(checkpoint_file)
-        if not self.checkpoint_path.is_absolute():
-            self.checkpoint_path = checkpoint_dir / self.checkpoint_path
-
-        self.page_size = page_size
-        self.retry_delay = retry_delay
-        self._logger = logger.getChild(self.__class__.__name__)
+        self.output_path = self.ensure_output_dir(Path(output_file))
+        self.checkpoint_path = self.ensure_checkpoint_dir(Path(checkpoint_file))
 
     def sync(self, incremental: bool = True) -> InvoiceSyncResult:
         """Run invoice synchronization."""
-        credentials = self.token_service.load()
-        headers = TokenService.build_headers(credentials)
+        credentials, headers = self.get_credentials_and_headers()
 
         last_purchase_date = self._load_checkpoint() if incremental else None
         is_incremental_run = incremental and last_purchase_date is not None

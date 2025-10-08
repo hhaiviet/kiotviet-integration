@@ -14,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.api.exceptions import ConfigurationError, KiotVietAPIError
 from src.services import InvoiceService, ProductService
 from src.utils.logger import logger
+from src.utils.azure_blob import upload_to_azure_blob
 
 
 def parse_args() -> argparse.Namespace:
@@ -65,6 +66,14 @@ def run_invoice(full: bool) -> None:
         "Checkpoint updated" if result.checkpoint_updated else "Checkpoint unchanged"
     )
 
+    # Upload to Azure Blob Storage
+    try:
+        blob_url = upload_to_azure_blob(result.output_file)
+        print(f"Invoice data uploaded to Azure: {blob_url}")
+    except Exception as e:
+        logger.error("Failed to upload invoice data to Azure: %s", e)
+        print(f"Warning: Failed to upload invoice data to Azure: {e}")
+
 
 def run_product(page_size: Optional[int], output: Optional[Path]) -> None:
     service = ProductService()
@@ -76,6 +85,14 @@ def run_product(page_size: Optional[int], output: Optional[Path]) -> None:
         f" duration={result.duration_seconds:.1f}s"
         f" output={result.output_file}"
     )
+
+    # Upload to Azure Blob Storage
+    try:
+        blob_url = upload_to_azure_blob(result.output_file)
+        print(f"Product data uploaded to Azure: {blob_url}")
+    except Exception as e:
+        logger.error("Failed to upload product data to Azure: %s", e)
+        print(f"Warning: Failed to upload product data to Azure: {e}")
 
 
 def main() -> None:

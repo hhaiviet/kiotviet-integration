@@ -23,3 +23,6 @@ dataclasses-json>=0.6.3
 # Utilities
 tenacity>=8.2.3
 schedule>=1.2.0
+
+# Cloud Storage
+azure-storage-blob>=12.19.0

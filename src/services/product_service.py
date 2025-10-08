@@ -13,6 +13,7 @@ from tqdm import tqdm
 
 from src.api.client import KiotVietClient
 from src.api.exceptions import ConfigurationError, KiotVietAPIError
+from src.services.base_service import BaseService
 from src.services.token_service import TokenService
 from src.utils.config import config
 from src.utils.logger import logger
@@ -47,7 +48,7 @@ class ProductExportResult:
     duration_seconds: float
 
 
-class ProductService:
+class ProductService(BaseService):
     """Fetch products from KiotViet API and export them to CSV."""
 
     def __init__(
@@ -55,34 +56,17 @@ class ProductService:
         client: Optional[KiotVietClient] = None,
         token_service: Optional[TokenService] = None,
     ) -> None:
+        super().__init__(client, token_service)
+
+        # Load product-specific configuration
         api_cfg = config.get("api", {})
         product_cfg = config.get("products", {})
-        data_cfg = config.get("data", {})
-        credentials_cfg = config.get("credentials", {})
 
-        base_url = api_cfg.get("base_url", "https://api-man1.kiotviet.vn/api")
-        timeout = int(api_cfg.get("timeout", 30))
-        max_retries = int(api_cfg.get("max_retries", 3))
-        page_size = int(product_cfg.get("page_size", api_cfg.get("page_size", 100)))
+        self.page_size = int(product_cfg.get("page_size", api_cfg.get("page_size", 100)))
 
-        self.client = client or KiotVietClient(
-            base_url=base_url,
-            timeout=timeout,
-            max_retries=max_retries,
-            retry_delay=0.5,
-        )
-
-        token_path = credentials_cfg.get("token_file", "data/credentials/token.json")
-        self.token_service = token_service or TokenService(token_path)
-
-        output_dir = Path(data_cfg.get("output_dir", "data/output"))
+        # Set up output path
         output_file = product_cfg.get("output_file", "master_products.csv")
-        self.output_path = Path(output_file)
-        if not self.output_path.is_absolute():
-            self.output_path = output_dir / self.output_path
-
-        self.page_size = page_size
-        self._logger = logger.getChild(self.__class__.__name__)
+        self.output_path = self.ensure_output_dir(Path(output_file))
 
     def export(
         self,
@@ -92,8 +76,7 @@ class ProductService:
         output_file: Optional[Path] = None,
     ) -> ProductExportResult:
         """Fetch products and export them to CSV."""
-        credentials = self.token_service.load()
-        headers = TokenService.build_headers(credentials)
+        credentials, headers = self.get_credentials_and_headers()
         page_size = int(page_size or self.page_size)
         if page_size <= 0:
             raise ConfigurationError("page_size must be positive")
