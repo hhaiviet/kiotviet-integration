@@ -74,7 +74,9 @@ def login_and_extract_token() -> None:
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--remote-debugging-port=0")
-    options.add_argument(f"--user-data-dir=/tmp/chrome_user_data_{os.getpid()}")
+    options.add_argument("--headless")  # Run in headless mode
+    user_data_dir = f"/tmp/chrome_user_data_{os.getpid()}_{int(time.time())}"
+    options.add_argument(f"--user-data-dir={user_data_dir}")
 
     options.binary_location = "/usr/bin/chromium-browser"
     service = Service("/usr/lib/chromium-browser/chromedriver")
