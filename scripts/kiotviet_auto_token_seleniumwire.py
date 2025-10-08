@@ -79,7 +79,16 @@ def login_and_extract_token() -> None:
     options.add_argument(f"--user-data-dir={user_data_dir}")
 
     options.binary_location = "/usr/bin/chromium-browser"
-    service = Service("/usr/lib/chromium-browser/chromedriver")
+    # Try system chromedriver first, fallback to webdriver-manager
+    chromedriver_path = "/usr/lib/bin/chromedriver"  # Common system path
+    if not os.path.exists(chromedriver_path):
+        chromedriver_path = "/usr/lib/chromium-browser/chromedriver"  # Alternative path
+    if not os.path.exists(chromedriver_path):
+        # Fallback to webdriver-manager for ARM
+        from webdriver_manager.chrome import ChromeDriverManager
+        chromedriver_path = ChromeDriverManager().install()
+    
+    service = Service(chromedriver_path)
 
     driver = webdriver.Chrome(service=service, options=options)
     wait = WebDriverWait(driver, 30)
