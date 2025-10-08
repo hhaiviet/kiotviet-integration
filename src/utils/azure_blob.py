@@ -3,11 +3,12 @@
 
 import os
 from pathlib import Path
+from typing import Union, Optional
 
 from azure.storage.blob import BlobServiceClient
 
 
-def upload_to_azure_blob(file_path: str | Path, blob_name: str | None = None) -> str:
+def upload_to_azure_blob(file_path: Union[str, Path], blob_name: Optional[str] = None) -> str:
     """Upload a file to Azure Blob Storage.
 
     Args:
