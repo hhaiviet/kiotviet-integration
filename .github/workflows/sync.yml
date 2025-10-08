@@ -66,6 +66,136 @@ jobs:
     - name: Create data directory
       run: mkdir -p data/output
 
+    - name: Generate KiotViet authentication token
+      env:
+        KIOTVIET_USERNAME: ${{ secrets.KIOTVIET_USERNAME }}
+        KIOTVIET_PASSWORD: ${{ secrets.KIOTVIET_PASSWORD }}
+      run: |
+        # Install required packages for token generation
+        pip install selenium-wire webdriver-manager
+
+        # Create CI-friendly token generation script
+        cat > get_token.py << 'EOF'
+        import os
+        import sys
+        import time
+        from pathlib import Path
+
+        from seleniumwire import webdriver
+        from selenium.webdriver.chrome.options import Options
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.ui import WebDriverWait
+        from webdriver_manager.chrome import ChromeDriverManager
+
+        PROJECT_ROOT = Path(__file__).resolve().parents[1]
+        if str(PROJECT_ROOT) not in sys.path:
+            sys.path.insert(0, str(PROJECT_ROOT))
+
+        from src.models.credentials import AccessCredentials
+        from src.services import TokenService
+
+        LOGIN_URL = "https://248minimart.kiotviet.vn/man/#/login"
+
+        def _require_env(name: str) -> str:
+            value = os.getenv(name)
+            if not value:
+                raise RuntimeError(f"Environment variable {name} is not set")
+            return value
+
+        USERNAME = _require_env("KIOTVIET_USERNAME")
+        PASSWORD = _require_env("KIOTVIET_PASSWORD")
+
+        def _extract_token(driver):
+            for request in driver.requests:
+                if request.response is None:
+                    continue
+                auth_header = request.headers.get("Authorization")
+                if not auth_header or not auth_header.startswith("Bearer "):
+                    continue
+                token = auth_header.replace("Bearer ", "", 1)
+                retailer = request.headers.get("Retailer")
+                branch = request.headers.get("BranchId")
+                return token, retailer, branch
+            return None
+
+        def login_and_extract_token():
+            options = Options()
+            options.add_argument("--headless")  # Run headless in CI
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-blink-features=AutomationControlled")
+
+            driver = webdriver.Chrome(
+                service=webdriver.ChromeService(ChromeDriverManager().install()),
+                options=options,
+            )
+            wait = WebDriverWait(driver, 30)
+
+            try:
+                print("Opening KiotViet login page...")
+                driver.get(LOGIN_URL)
+
+                username_input = wait.until(
+                    EC.presence_of_element_located((By.ID, "UserName"))
+                )
+                password_input = wait.until(
+                    EC.presence_of_element_located((By.ID, "Password"))
+                )
+
+                username_input.clear()
+                username_input.send_keys(USERNAME)
+                password_input.clear()
+                password_input.send_keys(PASSWORD)
+                print("Filled username and password.")
+
+                login_button = wait.until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, "//span[text()='Quản lý']/ancestor::button")
+                    )
+                )
+                login_button.click()
+                print("Submitted login form, waiting for dashboard...")
+
+                wait.until(lambda d: "/DashBoard" in d.current_url)
+                time.sleep(5)
+
+                token_info = _extract_token(driver)
+                if not token_info:
+                    raise RuntimeError("Could not find Authorization header in network requests.")
+
+                token, retailer_id, branch_id = token_info
+                if not retailer_id:
+                    raise RuntimeError("Retailer header missing")
+                if not branch_id:
+                    raise RuntimeError("Branch header missing")
+
+                try:
+                    branch_value = int(branch_id)
+                except ValueError as exc:
+                    raise RuntimeError(f"Branch id must be an integer: {branch_id}") from exc
+
+                credentials = AccessCredentials(
+                    access_token=token,
+                    retailer_id=str(retailer_id),
+                    branch_id=branch_value,
+                )
+
+                service = TokenService("data/credentials/token.json")
+                service.save(credentials)
+                print(f"Token saved to {service.token_file}")
+                print(f"Retailer ID: {credentials.retailer_id} | Branch ID: {credentials.branch_id}")
+
+            finally:
+                driver.quit()
+
+        if __name__ == "__main__":
+            login_and_extract_token()
+        EOF
+
+        # Run the token generation
+        python get_token.py
+
     - name: Run KiotViet sync
       env:
         AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
