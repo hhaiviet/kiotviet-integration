@@ -72,11 +72,12 @@ def login_and_extract_token() -> None:
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--headless=new")  # Use new headless mode
+    options.add_argument("--remote-debugging-port=9222")
     options.add_argument("--disable-gpu")
-    options.add_argument("--remote-debugging-port=0")
-    options.add_argument("--headless")  # Run in headless mode
-    user_data_dir = f"/tmp/chrome_user_data_{os.getpid()}_{int(time.time())}"
-    options.add_argument(f"--user-data-dir={user_data_dir}")
+    
+    # Use fixed profile directory instead of temporary one
+    options.add_argument("--user-data-dir=/home/hhaiviet/chrome-profile")
 
     options.binary_location = "/usr/bin/chromium-browser"
     # Try system chromedriver first, fallback to webdriver-manager
