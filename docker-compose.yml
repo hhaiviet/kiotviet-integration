@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  kiotviet-integration:
+    build: .
+    container_name: kiotviet-integration
+    restart: unless-stopped
+    environment:
+      - KIOTVIET_USERNAME=${KIOTVIET_USERNAME}
+      - KIOTVIET_PASSWORD=${KIOTVIET_PASSWORD}
+      - KIOTVIET_RETAILER_ID=${KIOTVIET_RETAILER_ID}
+      - KIOTVIET_BRANCH_ID=${KIOTVIET_BRANCH_ID}
+      - API_BASE_URL=${API_BASE_URL:-https://api-man1.kiotviet.vn/api}
+      - API_TIMEOUT=${API_TIMEOUT:-30}
+      - API_MAX_RETRIES=${API_MAX_RETRIES:-3}
+      - API_PAGE_SIZE=${API_PAGE_SIZE:-100}
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - chrome-profile:/home/chrome-profile
+    working_dir: /app
+    command: >
+      sh -c "
+        echo 'Starting KiotViet Integration...' &&
+        python scripts/kiotviet_run_all.py
+      "
+
+volumes:
+  chrome-profile:

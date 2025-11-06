@@ -3,6 +3,7 @@
 """Retrieve KiotViet access token via Selenium Wire."""
 
 import os
+import platform
 import sys
 import time
 from pathlib import Path
@@ -76,18 +77,34 @@ def login_and_extract_token() -> None:
     options.add_argument("--remote-debugging-port=9222")
     options.add_argument("--disable-gpu")
     
-    # Use fixed profile directory instead of temporary one
-    options.add_argument("--user-data-dir=/home/hhaiviet/chrome-profile")
+    # Use platform-specific user data directory
+    system = platform.system().lower()
+    if system == "windows":
+        user_data_dir = "C:\\temp\\chrome-profile"
+        # Don't set binary_location on Windows, let it find Chrome automatically
+    else:
+        # Linux/Unix systems (Raspberry Pi)
+        user_data_dir = "/home/hhaiviet/chrome-profile"
+        # Use chromium-browser on Raspberry Pi/Linux
+        options.binary_location = "/usr/bin/chromium-browser"
+    
+    options.add_argument(f"--user-data-dir={user_data_dir}")
 
-    options.binary_location = "/usr/bin/chromium-browser"
-    # Try system chromedriver first, fallback to webdriver-manager
-    chromedriver_path = "/usr/lib/bin/chromedriver"  # Common system path
-    if not os.path.exists(chromedriver_path):
-        chromedriver_path = "/usr/lib/chromium-browser/chromedriver"  # Alternative path
-    if not os.path.exists(chromedriver_path):
-        # Fallback to webdriver-manager for ARM
+    # Platform-specific ChromeDriver detection
+    chromedriver_path = None
+    if system == "windows":
+        # On Windows, use webdriver-manager to handle Chrome driver
         from webdriver_manager.chrome import ChromeDriverManager
         chromedriver_path = ChromeDriverManager().install()
+    else:
+        # Try system chromedriver first, fallback to webdriver-manager
+        chromedriver_path = "/usr/lib/bin/chromedriver"  # Common system path
+        if not os.path.exists(chromedriver_path):
+            chromedriver_path = "/usr/lib/chromium-browser/chromedriver"  # Alternative path
+        if not os.path.exists(chromedriver_path):
+            # Fallback to webdriver-manager for ARM
+            from webdriver_manager.chrome import ChromeDriverManager
+            chromedriver_path = ChromeDriverManager().install()
     
     service = Service(chromedriver_path)
 
