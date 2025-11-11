@@ -1,0 +1,212 @@
+{
+  "name": "KiotViet ETL Pipeline",
+  "description": "Automated ETL: Fetch Token → Export Products → Export Invoices → Upload to Blob Storage",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "http://localhost:5678/trigger",
+        "toEmail": "hhaiviet@gmail.com",
+        "subject": "KiotViet ETL Pipeline Started"
+      },
+      "id": "webhook",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 300],
+      "webhookId": "kiotviet-etl-trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://api-man1.kiotviet.vn/api/account/login?quan-ly=true",
+        "method": "POST",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Retailer",
+              "value": "248minimart"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "bodyParametersJson": "{\n  \"model\": {\n    \"UserName\": \"0913431718\",\n    \"Password\": \"68686868\",\n    \"RememberMe\": false,\n    \"ShowCaptcha\": false,\n    \"Language\": \"vi-VN\",\n    \"LatestBranchId\": 291407\n  }\n}"
+      },
+      "id": "fetch-token",
+      "name": "🔓 Fetch Token from KiotViet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/api/kiotviet/products/export",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $node[\"fetch-token\"].json.result.access_token }}"
+            }
+          ]
+        }
+      },
+      "id": "export-products",
+      "name": "📦 Export Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [550, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/api/kiotviet/invoices/sync",
+        "bodyParametersJson": "{\n  \"incremental\": true\n}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $node[\"fetch-token\"].json.result.access_token }}"
+            }
+          ]
+        }
+      },
+      "id": "export-invoices",
+      "name": "📋 Export Invoices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [550, 500]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/api/kiotviet/blob/upload/products",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "bodyParametersJson": "{\n  \"file\": \"{{ $node[\"export-products\"].json.output_file }}\"\n}"
+      },
+      "id": "upload-products",
+      "name": "☁️ Upload Products to Blob",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [800, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/api/kiotviet/blob/upload/invoices",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "bodyParametersJson": "{\n  \"file\": \"{{ $node[\"export-invoices\"].json.output_file }}\"\n}"
+      },
+      "id": "upload-invoices",
+      "name": "☁️ Upload Invoices to Blob",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [800, 500]
+    },
+    {
+      "parameters": {
+        "content": "✅ **KiotViet ETL Pipeline Completed Successfully!**\n\n📊 **Execution Summary:**\n- ✅ Token fetched from KiotViet API\n- ✅ Products exported: **{{ $node[\"export-products\"].json.products || 'N/A' }}** items\n- ✅ Invoices synced: **{{ $node[\"export-invoices\"].json.invoices || 'N/A' }}** invoices\n- ✅ All data uploaded to Azure Blob Storage\n\n⏱️ **Timing:**\n- Token fetch: {{ $node[\"fetch-token\"].executionTime }}ms\n- Product export: {{ $node[\"export-products\"].json.duration_seconds }}s\n- Invoice sync: {{ $node[\"export-invoices\"].json.duration_seconds }}s\n- Total execution: {{ $execution.duration }}ms\n\n🔗 **Blob Storage URLs:**\n- Products: https://kiotvietintegration.blob.core.windows.net/kiotviet-data/master_products.csv\n- Invoices: https://kiotvietintegration.blob.core.windows.net/kiotviet-data/invoice_details.csv\n\n📅 **Timestamp:** {{ now().format('YYYY-MM-DD HH:mm:ss') }}"
+      },
+      "id": "success-summary",
+      "name": "✅ Success Summary",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "webhook": {
+      "main": [
+        [
+          {
+            "node": "fetch-token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch-token": {
+      "main": [
+        [
+          {
+            "node": "export-products",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "export-invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "export-products": {
+      "main": [
+        [
+          {
+            "node": "upload-products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "export-invoices": {
+      "main": [
+        [
+          {
+            "node": "upload-invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "upload-products": {
+      "main": [
+        [
+          {
+            "node": "success-summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "upload-invoices": {
+      "main": [
+        [
+          {
+            "node": "success-summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "Asia/Ho_Chi_Minh"
+  }
+}

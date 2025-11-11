@@ -90,13 +90,27 @@ product_service.export_to_csv(products)
 ## 🏗️ Architecture
 
 ```
-src/
-├── api/        # API clients and authentication
-├── services/   # Business logic
-├── models/     # Data models
-├── exporters/  # Export handlers
-├── utils/      # Utilities
-└── cli/        # Command-line interface
+src/                    # Main source code
+├── api/               # API clients and authentication
+├── services/          # Business logic
+├── models/            # Data models
+├── exporters/         # Export handlers
+├── utils/             # Utilities
+└── cli/               # Command-line interface
+
+scripts/               # Operational scripts
+├── token/            # Token management scripts
+├── dags/             # Airflow DAGs
+└── *.py              # Core execution scripts
+
+deploy/               # Deployment scripts and tools
+monitoring/           # Monitoring and validation scripts
+debug/                # Test and debug utilities
+docs/                 # Documentation
+├── deployment/       # Deployment guides
+├── monitoring/       # Monitoring guides
+└── guides/           # General guides
+tests/                # Unit and integration tests
 ```
 
 ## � Automated Scheduling (GitHub Actions)

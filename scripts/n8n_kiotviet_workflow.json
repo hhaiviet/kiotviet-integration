@@ -1,0 +1,156 @@
+{
+  "name": "KiotViet ETL Pipeline",
+  "description": "Automated ETL: Fetch Token \u2192 Export Products \u2192 Export Invoices \u2192 Upload to Blob",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "http://localhost:5678/api/kiotviet/token",
+        "method": "POST",
+        "bodyParametersJson": "{\n  \"username\": \"0913431718\",\n  \"password\": \"68686868\"\n}"
+      },
+      "id": "fetch-token",
+      "name": "\ud83d\udd13 Fetch Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/api/kiotviet/products/export",
+        "method": "POST",
+        "bodyParametersJson": "{}"
+      },
+      "id": "export-products",
+      "name": "\ud83d\udce6 Export Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        550,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/api/kiotviet/invoices/sync",
+        "method": "POST",
+        "bodyParametersJson": "{\"incremental\": true}"
+      },
+      "id": "export-invoices",
+      "name": "\ud83d\udccb Export Invoices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        550,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/api/kiotviet/upload/products",
+        "method": "POST",
+        "bodyParametersJson": "{}"
+      },
+      "id": "upload-products",
+      "name": "\u2601\ufe0f Upload Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        850,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/api/kiotviet/upload/invoices",
+        "method": "POST",
+        "bodyParametersJson": "{}"
+      },
+      "id": "upload-invoices",
+      "name": "\u2601\ufe0f Upload Invoices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        850,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "content": "\u2705 **KiotViet ETL Pipeline Completed!**\n\n\ud83d\udcca Summary:\n- \u2705 Token fetched from KiotViet API\n- \u2705 Products exported: {{$node[\"export-products\"].json.count || 'N/A'}} items\n- \u2705 Invoices synced: {{$node[\"export-invoices\"].json.count || 'N/A'}} invoices\n- \u2705 All data uploaded to Azure Blob Storage\n\n\u23f0 Execution time: {{$execution.duration}}ms\n\ud83d\udd17 Blob URLs:\n- Products: https://kiotvietintegration.blob.core.windows.net/kiotviet-data/master_products.csv\n- Invoices: https://kiotvietintegration.blob.core.windows.net/kiotviet-data/invoice_details.csv"
+      },
+      "id": "success-notification",
+      "name": "\u2705 Success Summary",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "fetch-token": {
+      "main": [
+        [
+          {
+            "node": "export-products",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "export-invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "export-products": {
+      "main": [
+        [
+          {
+            "node": "upload-products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "export-invoices": {
+      "main": [
+        [
+          {
+            "node": "upload-invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "upload-products": {
+      "main": [
+        [
+          {
+            "node": "success-notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "upload-invoices": {
+      "main": [
+        [
+          {
+            "node": "success-notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
